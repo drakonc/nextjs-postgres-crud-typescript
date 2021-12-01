@@ -1,23 +1,30 @@
-import type { NextApiRequest, NextApiResponse } from 'next'
-import tasksController from '../../../controller/tasksController';
+import type { NextApiRequest, NextApiResponse } from "next";
+import { conn } from "../../../utils/database";
 
 // eslint-disable-next-line import/no-anonymous-default-export
-export default (req: NextApiRequest, res: NextApiResponse) => {
-    
-    const { method } = req;
+export default async (req: NextApiRequest, res: NextApiResponse) => {
+  const { method, body } = req;
 
-    switch (method) {
-        case 'GET':
-            const tasks = tasksController.getTasks();
-            return res.status(200).json(tasks);
-        case 'POST':
-            return res.status(200).json({ name: 'Posting Tasks' });
-        case 'PUT':
-            return res.status(200).json({ name: 'Putting Tasks' });
-        case 'DELETE':
-            return res.status(200).json({ name: 'Deleting Tasks' });
-        default:
-            return res.status(400).json({ name: 'Invalid Method' });
-    }
-
-}
+  switch (method) {
+    case "GET":
+      try {
+        const query = "SELECT * FROM Tasks ORDER BY id";
+        const response = await conn.query(query);
+        return res.status(200).json(response.rows);
+      } catch (error: any) {
+        return res.status(500).json(error.message);
+      }
+    case "POST":
+      try {
+        const { title, description } = body;
+        const query = "INSERT INTO Tasks (title, description) VALUES ($1, $2) RETURNING *";
+        const values = [title, description];
+        const response = await conn.query(query, values);
+        return res.status(200).json(response.rows[0]);
+      } catch (error: any) {
+        return res.status(500).json(error.message);
+      }
+    default:
+      return res.status(400).json({ name: "Invalid Method" });
+  }
+};
